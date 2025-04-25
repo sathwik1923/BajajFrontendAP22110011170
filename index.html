@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bajaj Problem Doctors</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      background-color: #1e2a47;
+      color: #e0e0e0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sbr {
+      width: 300px;
+      padding: 20px;
+      background: #2c3e50;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .mn {
+      flex: 1;
+      padding: 20px;
+      height: 100vh;
+      overflow-y: auto;
+      background: #34495e;
+    }
+
+    .dcr {
+      display: flex;
+      align-items: center;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #2c3e50;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
+    }
+
+    .dcr:hover {
+      transform: scale(1.02);
+    }
+
+    .dcr img {
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      margin-right: 20px;
+    }
+
+    .dci {
+      flex: 1;
+    }
+
+    .dcr h3 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #ecf0f1;
+    }
+
+    .sts {
+      font-size: 0.9rem;
+      color: #95a5a6;
+    }
+
+    .dts {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #bdc3c7;
+    }
+
+    .dts span {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .btn {
+      margin-top: 10px;
+      padding: 8px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn:hover {
+      background-color: #45a049;
+    }
+
+    .auto {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .sgn {
+      position: absolute;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-top: none;
+      background: #34495e;
+      max-height: 120px;
+      overflow-y: auto;
+      z-index: 10;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      border-radius: 5px;
+    }
+
+    .sgi {
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    .sgi:hover {
+      background: #95a5a6;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sbr">
+    <h3>Consultation Mode</h3>
+    <label><input type="radio" name="md" value="Video Consult"> Video Consult</label><br>
+    <label><input type="radio" name="md" value="In Clinic"> In Clinic</label>
+
+    <h3>Speciality</h3>
+    <div id="spf"></div>
+
+    <h3>Sort</h3>
+    <label><input type="radio" name="st" value="fees"> Fees (Low to High)</label><br>
+    <label><input type="radio" name="st" value="experience"> Experience (High to Low)</label>
+  </div>
+
+  <div class="mn">
+    <div class="auto">
+      <input type="text" id="srch" placeholder="Search doctor by name" />
+      <div id="sgns" class="sgn"></div>
+    </div>
+    <div id="dctrs"></div>
+  </div>
+
+  <script>
+    var url = 'https://srijandubey.github.io/campus-api-mock/SRM-C1-25.json';
+    var all = [], flt = [];
+    var srch = document.getElementById('srch');
+    var sgns = document.getElementById('sgns');
+    var dctrs = document.getElementById('dctrs');
+
+    function fch() {
+      fetch(url)
+        .then(r => {
+          if (!r.ok) throw new Error('Failed to load doctors: ' + r.status);
+          return r.json();
+        })
+        .then(d => {
+          if (Array.isArray(d)) {
+            all = d;
+            rtrn(all);
+            gns(all);
+            afx();
+          }
+        })
+        .catch(e => console.error('Error:', e));
+    }
+
+    function gns(d) {
+      const sp = new Set();
+      d.forEach(x => x.specialities.forEach(y => sp.add(y.name)));
+
+      const spf = document.getElementById('spf');
+      spf.innerHTML = '';
+      sp.forEach(s => {
+        const lbl = document.createElement('label');
+        lbl.innerHTML = `<input type="checkbox" value="${s}"> ${s}`;
+        spf.appendChild(lbl);
+        spf.appendChild(document.createElement('br'));
+      });
+
+      document.querySelectorAll('#spf input').forEach(i => {
+        i.addEventListener('change', aplf);
+      });
+    }
+
+    function aplf() {
+      var res = all.slice();
+      var txt = srch.value.toLowerCase();
+
+      if (txt) {
+        res = res.filter(d => d.name.toLowerCase().includes(txt));
+      }
+
+      var md = document.querySelector('input[name="md"]:checked')?.value;
+      if (md) {
+        res = res.filter(d =>
+          (md === 'Video Consult' && d.video_consult) ||
+          (md === 'In Clinic' && d.in_clinic)
+        );
+      }
+
+      var spcl = [];
+      var chk = document.querySelectorAll('#spf input:checked');
+      chk.forEach(c => spcl.push(c.value));
+      if (spcl.length > 0) {
+        res = res.filter(d =>
+          spcl.some(s =>
+            d.specialities.some(sp => sp.name === s)
+          )
+        );
+      }
+
+      var st = document.querySelector('input[name="st"]:checked')?.value;
+      if (st === 'fees') {
+        res.sort((a, b) =>
+          parseInt(a.fees.replace('₹', '').replace(',', '')) -
+          parseInt(b.fees.replace('₹', '').replace(',', ''))
+        );
+      } else if (st === 'experience') {
+        res.sort((a, b) => parseInt(b.experience) - parseInt(a.experience));
+      }
+
+      rtrn(res);
+      updURL();
+    }
+
+    function rtrn(d) {
+      dctrs.innerHTML = '';
+      if (d.length === 0) {
+        dctrs.innerHTML = '<p>No doctors found.</p>';
+      }
+      d.forEach(doc => {
+        const card = document.createElement('div');
+        card.className = 'dcr';
+        card.innerHTML = `
+          <img src="${doc.photo}" alt="${doc.name}" />
+          <div class="dci">
+            <h3>${doc.name}</h3>
+            <div class="sts">Specialties: ${doc.specialities.map(sp => sp.name).join(', ')}</div>
+            <div class="dts">
+              <span>Experience: ${doc.experience}</span>
+              <span>Fees: ${doc.fees}</span>
+              <span>Languages: ${doc.languages.join(', ')}</span>
+              <span>Clinic: ${doc.clinic.name}</span>
+              <span>Address: ${doc.clinic.address.address_line1}, ${doc.clinic.address.locality}, ${doc.clinic.address.city}</span>
+            </div>
+            <button class="btn">Consult</button>
+          </div>`;
+        dctrs.appendChild(card);
+      });
+    }
+
+    srch.addEventListener('input', function () {
+      var val = srch.value.toLowerCase();
+      sgns.innerHTML = '';
+      if (val) {
+        var sugg = all.filter(doc =>
+          doc.name.toLowerCase().includes(val)
+        ).slice(0, 3);
+        sugg.forEach(doc => {
+          var div = document.createElement('div');
+          div.textContent = doc.name;
+          div.className = 'sgi';
+          div.addEventListener('click', function () {
+            srch.value = doc.name;
+            sgns.innerHTML = '';
+            aplf();
+          });
+          sgns.appendChild(div);
+        });
+      }
+    });
+
+    document.querySelectorAll('input[type="radio"]').forEach(i => {
+      i.addEventListener('change', aplf);
+    });
+
+    function updURL() {
+      const p = new URLSearchParams();
+      const s = srch.value.trim();
+      if (s) p.set('search', s);
+
+      const md = document.querySelector('input[name="md"]:checked')?.value;
+      if (md) p.set('mode', md);
+
+      const spcl = Array.from(document.querySelectorAll('#spf input:checked')).map(cb => cb.value);
+      if (spcl.length) p.set('specialties', spcl.join(','));
+
+      const st = document.querySelector('input[name="st"]:checked')?.value;
+      if (st) p.set('sort', st);
+
+      history.pushState(null, '', '?' + p.toString());
+    }
+
+    fch();
+  </script>
+</body>
+
+</html>
